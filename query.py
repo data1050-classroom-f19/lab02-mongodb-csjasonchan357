@@ -23,10 +23,20 @@ def query1(minFare, maxFare):
         An array of documents.
     """
     docs = db.taxi.find(
-        # TODO: implement me
+        {
+            'fare_amount': { '$gte' : minFare, '$lte' : maxFare}
+        }
+        ,
+        {
+            '_id': 0,
+            'pickup_longitude': 1,
+            'pickup_latitude': 1,
+            'fare_amount': 1
+        }
     )
 
     result = [doc for doc in docs]
+    print(result)
     return result
 
 
@@ -76,14 +86,27 @@ def query3():
     Returns:
         An array of documents.
     """
-    docs = db.airbnb.aggregate(
-        # TODO: implement me
-    )
+    docs = db.airbnb.aggregate([
+        {'$group': {'_id': '$neighbourhood_group', 'total' : {'$avg': "$price"}}},
+        {'$sort': {'total': -1}}
+    ])
 
     result = [doc for doc in docs]
+    print(result)
     return result
-
-
+"""
+{
+        "_id" : ObjectId("5dd85a8a81382be25462c734"),
+        "key" : "2009-06-15 17:26:21.0000001",
+        "fare_amount" : 4.5,
+        "pickup_datetime" : ISODate("2009-06-15T17:26:21Z"),
+        "pickup_longitude" : -73.844311,
+        "pickup_latitude" : 40.721319,
+        "dropoff_longitude" : -73.84161,
+        "dropoff_latitude" : 40.712278000000005,
+        "passenger_count" : 1
+}
+"""
 def query4():
     """ Groups taxis by pickup hour. 
         Find average fare for each hour.
@@ -94,10 +117,24 @@ def query4():
     Returns:
         An array of documents.
     """
-    docs = db.taxi.aggregate(
-        # TODO: implement me
-    )
+    docs = db.taxi.aggregate([
+        {'$group': {
+            '_id': {'$hour': '$pickup_datetime'}, 
+            'avgFare': {'$avg': '$fare_amount'},
+            'avgDist': {'$add': [
+                        {'$abs': 
+                            {'$subtract': ['$pickup_longitude', '$dropoff_longitude']}
+                        },
+                        {'$abs': 
+                            {'$subtract': ['$pickup_latitude', '$dropoff_latitude']}
+                        }
+                        ]
+                }
+            }
+        }
+    ])
     result = [doc for doc in docs]
+    print(result)
     return result
 
 
@@ -124,3 +161,6 @@ def query5():
     )
     result = [doc for doc in docs]
     return result
+
+if __name__ == "__main__":
+    query4()
