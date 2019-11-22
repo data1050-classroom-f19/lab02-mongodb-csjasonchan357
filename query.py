@@ -121,7 +121,9 @@ def query4():
         {'$group': {
             '_id': {'$hour': '$pickup_datetime'}, 
             'avgFare': {'$avg': '$fare_amount'},
-            'avgDist': {'$add': [
+            'avgDist': {
+                '$avg':{
+                    '$add': [
                         {'$abs': 
                             {'$subtract': ['$pickup_longitude', '$dropoff_longitude']}
                         },
@@ -129,16 +131,21 @@ def query4():
                             {'$subtract': ['$pickup_latitude', '$dropoff_latitude']}
                         }
                         ]
+                    }
+                },
+            'count': {
+                    '$sum': 1
                 }
             }
-        }
+        },
+        {'$sort': {'avgFare': -1}}
     ])
     result = [doc for doc in docs]
     print(result)
     return result
 
 
-def query5():
+def query5(longitude, latitude):
     """ Finds airbnbs within 1000 meters from location (longitude, latitude) using geoNear. 
         Find average fare for each hour.
         Find average manhattan distance travelled for each hour.
@@ -156,11 +163,32 @@ def query5():
 
 
     """
-    docs = db.airbnb.aggregate(
-        # TODO: implement me
-    )
+    docs = db.airbnb.aggregate([
+       {
+           '$geoNear': {
+               'near': {'type': 'Point', 'coordinates': [longitude, latitude]},
+               'distanceField': 'dist.calculated',
+               'maxDistance': 1000,
+               'spherical': False
+           }
+       },
+       {
+           '$project': {
+               '_id': 0,
+               'dist': 1,
+               'name': 1,
+               'neighbourhood': 1,
+               'neighbourhood_group': 1,
+               'price': 1,
+               'room_type': 1
+           }
+       },
+       {
+           '$sort': {'dist': 1}
+       }
+   ])
     result = [doc for doc in docs]
     return result
 
 if __name__ == "__main__":
-    query4()
+    print(query5(-73.844311, 40.721319))
